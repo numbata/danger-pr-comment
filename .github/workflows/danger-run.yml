@@ -1,0 +1,76 @@
+name: Danger Run
+
+on:
+  workflow_call:
+    inputs:
+      ruby-version:
+        description: "Ruby version for ruby/setup-ruby. Leave empty to use .ruby-version/.tool-versions."
+        required: false
+        type: string
+        default: ""
+      bundler-cache:
+        description: "Use bundler-cache in ruby/setup-ruby."
+        required: false
+        type: boolean
+        default: true
+      danger-args:
+        description: "Arguments passed to `bundle exec danger`."
+        required: false
+        type: string
+        default: "dry_run"
+      report-artifact-name:
+        description: "Artifact name for the Danger report."
+        required: false
+        type: string
+        default: danger-report
+      report-file:
+        description: "Report filename written by Danger."
+        required: false
+        type: string
+        default: danger-report.json
+
+permissions:
+  contents: read
+
+jobs:
+  danger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Ruby (specified)
+        if: ${{ inputs.ruby-version != '' }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ inputs.ruby-version }}
+          bundler-cache: ${{ inputs.bundler-cache }}
+
+      - name: Set up Ruby (auto)
+        if: ${{ inputs.ruby-version == '' }}
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: ${{ inputs.bundler-cache }}
+
+      - name: Run Danger
+        id: danger
+        continue-on-error: true
+        env:
+          DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN || github.token }}
+          DANGER_REPORT_PATH: ${{ runner.temp }}/${{ inputs.report-file }}
+        run: bundle exec danger ${{ inputs.danger-args }}
+
+      - name: Upload Danger report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.report-artifact-name }}
+          path: ${{ runner.temp }}/${{ inputs.report-file }}
+          if-no-files-found: error
+
+      - name: Fail if Danger failed
+        if: ${{ steps.danger.outcome == 'failure' }}
+        run: exit 1
