@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
+require 'English'
 require 'spec_helper'
 require 'tmpdir'
 require 'fileutils'
 
-RSpec.describe 'install-workflows.sh' do
+# Testing a shell script, not a Ruby class
+# rubocop:disable RSpec/DescribeClass
+RSpec.describe 'Workflow installation script', type: :integration do
   subject(:script_path) { File.expand_path('../../scripts/install-workflows.sh', __dir__) }
 
   let(:tmpdir) { Dir.mktmpdir }
@@ -13,11 +16,11 @@ RSpec.describe 'install-workflows.sh' do
     FileUtils.rm_rf(tmpdir)
   end
 
-  def run_script(*args)
+  def run_script?(*args)
     Dir.chdir(tmpdir) do
       system(script_path, *args, out: File::NULL, err: File::NULL)
     end
-    $?.success?
+    $CHILD_STATUS.success?
   end
 
   def danger_yml_path
@@ -30,26 +33,26 @@ RSpec.describe 'install-workflows.sh' do
 
   describe 'basic installation' do
     it 'creates both workflow files' do
-      run_script('--root', tmpdir)
+      run_script?('--root', tmpdir)
 
       expect(File.exist?(danger_yml_path)).to be true
       expect(File.exist?(danger_comment_yml_path)).to be true
     end
 
     it 'creates .github/workflows directory if it does not exist' do
-      run_script('--root', tmpdir)
+      run_script?('--root', tmpdir)
 
       expect(Dir.exist?(File.join(tmpdir, '.github/workflows'))).to be true
     end
 
     it 'exits successfully when files are created' do
-      expect(run_script('--root', tmpdir)).to be true
+      expect(run_script?('--root', tmpdir)).to be true
     end
   end
 
   describe 'danger.yml content' do
     before do
-      run_script('--root', tmpdir)
+      run_script?('--root', tmpdir)
     end
 
     it 'contains correct workflow name' do
@@ -76,7 +79,7 @@ RSpec.describe 'install-workflows.sh' do
 
   describe 'danger-comment.yml content' do
     before do
-      run_script('--root', tmpdir)
+      run_script?('--root', tmpdir)
     end
 
     it 'contains correct workflow name' do
@@ -111,15 +114,15 @@ RSpec.describe 'install-workflows.sh' do
       end
 
       it 'fails without --force flag' do
-        expect(run_script('--root', tmpdir)).to be false
+        expect(run_script?('--root', tmpdir)).to be false
       end
 
       it 'succeeds with --force flag' do
-        expect(run_script('--root', tmpdir, '--force')).to be true
+        expect(run_script?('--root', tmpdir, '--force')).to be true
       end
 
       it 'overwrites existing files with --force flag' do
-        run_script('--root', tmpdir, '--force')
+        run_script?('--root', tmpdir, '--force')
 
         danger_content = File.read(danger_yml_path)
         expect(danger_content).not_to eq('existing content')
@@ -133,7 +136,7 @@ RSpec.describe 'install-workflows.sh' do
       custom_root = File.join(tmpdir, 'custom')
       FileUtils.mkdir_p(custom_root)
 
-      run_script('--root', custom_root)
+      run_script?('--root', custom_root)
 
       expect(File.exist?(File.join(custom_root, '.github/workflows/danger.yml'))).to be true
       expect(File.exist?(File.join(custom_root, '.github/workflows/danger-comment.yml'))).to be true
@@ -142,23 +145,23 @@ RSpec.describe 'install-workflows.sh' do
 
   describe '--help option' do
     it 'exits successfully with -h' do
-      expect(run_script('-h')).to be true
+      expect(run_script?('-h')).to be true
     end
 
     it 'exits successfully with --help' do
-      expect(run_script('--help')).to be true
+      expect(run_script?('--help')).to be true
     end
   end
 
   describe 'error handling' do
     it 'fails with unknown option' do
-      expect(run_script('--unknown')).to be false
+      expect(run_script?('--unknown')).to be false
     end
   end
 
   describe 'file permissions' do
     before do
-      run_script('--root', tmpdir)
+      run_script?('--root', tmpdir)
     end
 
     it 'creates readable workflow files' do
@@ -167,3 +170,4 @@ RSpec.describe 'install-workflows.sh' do
     end
   end
 end
+# rubocop:enable RSpec/DescribeClass
