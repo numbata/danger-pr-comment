@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.2.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+
+    - name: Configure git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Update version
+      run: |
+        echo "Updating version to ${{ inputs.version }}"
+        sed -i "s/VERSION = '[^']*'/VERSION = '${{ inputs.version }}'/" lib/danger-pr-comment/version.rb
+        git add lib/danger-pr-comment/version.rb
+        git commit -m "Release v${{ inputs.version }}"
+        git tag "v${{ inputs.version }}"
+
+    - name: Build gem
+      run: gem build danger-pr-comment.gemspec
+
+    - name: Push gem to RubyGems
+      env:
+        GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+      run: |
+        mkdir -p ~/.gem
+        cat << EOF > ~/.gem/credentials
+        ---
+        :rubygems_api_key: ${GEM_HOST_API_KEY}
+        EOF
+        chmod 0600 ~/.gem/credentials
+        gem push danger-pr-comment-${{ inputs.version }}.gem
+
+    - name: Push changes and tag
+      run: |
+        git push origin main
+        git push origin "v${{ inputs.version }}"
+
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release create "v${{ inputs.version }}" \
+          --title "v${{ inputs.version }}" \
+          --generate-notes \
+          danger-pr-comment-${{ inputs.version }}.gem
