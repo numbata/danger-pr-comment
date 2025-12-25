@@ -1,5 +1,6 @@
-# -*- encoding: utf-8 -*-
-$:.push File.expand_path('lib', __dir__)
+# frozen_string_literal: true
+
+$LOAD_PATH.push File.expand_path('lib', __dir__)
 require 'danger-pr-comment/version'
 
 Gem::Specification.new do |s|
@@ -15,5 +16,5 @@ Gem::Specification.new do |s|
   s.files         = Dir['Dangerfile', 'LICENSE.txt', 'README.md', 'lib/**/*.rb']
   s.require_paths = ['lib']
 
-  s.add_runtime_dependency 'danger', '~> 9'
+  s.add_dependency 'danger', '~> 9'
 end

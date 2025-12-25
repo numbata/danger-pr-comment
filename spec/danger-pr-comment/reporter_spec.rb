@@ -101,9 +101,7 @@ RSpec.describe DangerPrComment::Reporter do
 
         reporter.export_json(nil, event_file.path)
 
-        if File.exist?(report_file.path)
-          expect(File.read(report_file.path)).to eq(original_content)
-        end
+        expect(File.read(report_file.path)).to eq(original_content) if File.exist?(report_file.path)
       end
     end
 
