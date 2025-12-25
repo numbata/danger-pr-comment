@@ -19,6 +19,3 @@ jobs:
 
     - name: Run tests
       run: bundle exec rspec
-
-    - name: Run rake default task
-      run: bundle exec rake
