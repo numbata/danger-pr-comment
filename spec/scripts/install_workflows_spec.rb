@@ -5,8 +5,6 @@ require 'spec_helper'
 require 'tmpdir'
 require 'fileutils'
 
-# Testing a shell script, not a Ruby class
-# rubocop:disable RSpec/DescribeClass
 RSpec.describe 'Workflow installation script', type: :integration do
   subject(:script_path) { File.expand_path('../../scripts/install-workflows.sh', __dir__) }
 
@@ -170,4 +168,3 @@ RSpec.describe 'Workflow installation script', type: :integration do
     end
   end
 end
-# rubocop:enable RSpec/DescribeClass
