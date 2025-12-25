@@ -8,9 +8,11 @@ gem 'bundler'
 gem 'rake'
 
 group :development do
-  gem 'rubocop', '~> 1.69'
+  gem 'rubocop', '1.82.1'
+  gem 'rubocop-rake'
+  gem 'rubocop-rspec'
 end
 
 group :test do
-  gem 'rspec', '~> 3.13'
+  gem 'rspec'
 end

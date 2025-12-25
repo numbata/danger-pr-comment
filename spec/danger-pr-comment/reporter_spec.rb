@@ -5,6 +5,8 @@ require 'tempfile'
 require 'json'
 
 RSpec.describe DangerPrComment::Reporter do
+  subject(:reporter) { described_class.new(status_report) }
+
   let(:status_report) do
     {
       errors: ['Error 1', 'Error 2'],
@@ -13,8 +15,6 @@ RSpec.describe DangerPrComment::Reporter do
       markdowns: ['Markdown 1']
     }
   end
-
-  subject(:reporter) { described_class.new(status_report) }
 
   describe '#initialize' do
     it 'stores the status report' do

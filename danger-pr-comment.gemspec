@@ -17,4 +17,5 @@ Gem::Specification.new do |s|
   s.require_paths = ['lib']
 
   s.add_dependency 'danger', '~> 9'
+  s.metadata['rubygems_mfa_required'] = 'true'
 end
