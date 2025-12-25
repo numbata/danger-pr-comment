@@ -7,6 +7,10 @@ on:
     types: [opened, reopened, edited, synchronize]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   # Test with default inputs
   test-default:
@@ -40,6 +44,8 @@ jobs:
   # Verify artifacts were created
   verify-artifacts:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
     needs: [test-default, test-custom-ruby, test-custom-artifact, test-no-cache]
     if: always()
     steps:

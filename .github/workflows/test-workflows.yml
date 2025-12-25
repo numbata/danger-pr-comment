@@ -6,10 +6,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   # Run danger with different configurations
   test-danger-run:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -124,6 +129,8 @@ jobs:
   # Test workflow file syntax
   test-workflow-syntax:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -194,6 +201,7 @@ jobs:
 
   test-results:
     runs-on: ubuntu-latest
+    permissions: {}
     needs: [test-danger-run, test-workflow-syntax, test-reusable-workflow-call]
     if: always()
     steps:
