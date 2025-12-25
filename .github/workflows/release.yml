@@ -2,11 +2,6 @@ name: Release
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release (e.g., 0.2.0)'
-        required: true
-        type: string
 
 jobs:
   release:
@@ -25,18 +20,20 @@ jobs:
         ruby-version: '3.3'
         bundler-cache: true
 
+    - name: Get version from version.rb
+      id: get_version
+      run: |
+        VERSION=$(ruby -r./lib/danger-pr-comment/version.rb -e 'puts DangerPrComment::VERSION')
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Releasing version: $VERSION"
+
     - name: Configure git
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Update version
-      run: |
-        echo "Updating version to ${{ inputs.version }}"
-        sed -i "s/VERSION = '[^']*'/VERSION = '${{ inputs.version }}'/" lib/danger-pr-comment/version.rb
-        git add lib/danger-pr-comment/version.rb
-        git commit -m "Release v${{ inputs.version }}"
-        git tag "v${{ inputs.version }}"
+    - name: Create git tag
+      run: git tag "v${{ steps.get_version.outputs.version }}"
 
     - name: Build gem
       run: gem build danger-pr-comment.gemspec
@@ -51,18 +48,35 @@ jobs:
         :rubygems_api_key: ${GEM_HOST_API_KEY}
         EOF
         chmod 0600 ~/.gem/credentials
-        gem push danger-pr-comment-${{ inputs.version }}.gem
+        gem push danger-pr-comment-${{ steps.get_version.outputs.version }}.gem
 
-    - name: Push changes and tag
-      run: |
-        git push origin main
-        git push origin "v${{ inputs.version }}"
+    - name: Push tag
+      run: git push origin "v${{ steps.get_version.outputs.version }}"
 
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh release create "v${{ inputs.version }}" \
-          --title "v${{ inputs.version }}" \
+        gh release create "v${{ steps.get_version.outputs.version }}" \
+          --title "v${{ steps.get_version.outputs.version }}" \
           --generate-notes \
-          danger-pr-comment-${{ inputs.version }}.gem
+          danger-pr-comment-${{ steps.get_version.outputs.version }}.gem
+
+    - name: Increment patch version
+      id: next_version
+      run: |
+        CURRENT_VERSION="${{ steps.get_version.outputs.version }}"
+        NEXT_VERSION=$(ruby -e "
+          version = '$CURRENT_VERSION'.split('.')
+          version[2] = version[2].to_i + 1
+          puts version.join('.')
+        ")
+        echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+        echo "Next development version: $NEXT_VERSION"
+
+    - name: Update version to next development version
+      run: |
+        sed -i "s/VERSION = '[^']*'/VERSION = '${{ steps.next_version.outputs.next_version }}'/" lib/danger-pr-comment/version.rb
+        git add lib/danger-pr-comment/version.rb
+        git commit -m "Bump version to ${{ steps.next_version.outputs.next_version }}"
+        git push origin main
