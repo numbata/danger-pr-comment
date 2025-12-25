@@ -1,0 +1,96 @@
+name: Test Danger Run Workflow
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, edited, synchronize]
+  workflow_dispatch:
+
+jobs:
+  # Test with default inputs
+  test-default:
+    uses: ./.github/workflows/danger-run.yml
+    secrets: inherit
+
+  # Test with custom Ruby version
+  test-custom-ruby:
+    uses: ./.github/workflows/danger-run.yml
+    with:
+      ruby-version: "3.2"
+      bundler-cache: true
+      danger-args: "dry_run"
+    secrets: inherit
+
+  # Test with custom artifact name
+  test-custom-artifact:
+    uses: ./.github/workflows/danger-run.yml
+    with:
+      report-artifact-name: "custom-danger-report"
+      report-file: "custom-report.json"
+    secrets: inherit
+
+  # Test without bundler cache
+  test-no-cache:
+    uses: ./.github/workflows/danger-run.yml
+    with:
+      bundler-cache: false
+    secrets: inherit
+
+  # Verify artifacts were created
+  verify-artifacts:
+    runs-on: ubuntu-latest
+    needs: [test-default, test-custom-ruby, test-custom-artifact, test-no-cache]
+    if: always()
+    steps:
+      - name: Download default artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: danger-report
+          path: ./default-report
+
+      - name: Download custom artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: custom-danger-report
+          path: ./custom-report
+
+      - name: Verify default report exists
+        run: |
+          if [ ! -f ./default-report/danger-report.json ]; then
+            echo "Error: Default report file not found"
+            exit 1
+          fi
+          echo "✓ Default report file exists"
+
+      - name: Verify custom report exists
+        run: |
+          if [ ! -f ./custom-report/custom-report.json ]; then
+            echo "Error: Custom report file not found"
+            exit 1
+          fi
+          echo "✓ Custom report file exists"
+
+      - name: Validate report structure
+        run: |
+          report="./default-report/danger-report.json"
+          if ! jq -e '.pr_number' "$report" > /dev/null 2>&1; then
+            echo "Warning: Report does not contain pr_number (expected for dry_run)"
+          fi
+          if ! jq -e '.errors' "$report" > /dev/null 2>&1; then
+            echo "Error: Report missing errors field"
+            exit 1
+          fi
+          if ! jq -e '.warnings' "$report" > /dev/null 2>&1; then
+            echo "Error: Report missing warnings field"
+            exit 1
+          fi
+          if ! jq -e '.messages' "$report" > /dev/null 2>&1; then
+            echo "Error: Report missing messages field"
+            exit 1
+          fi
+          if ! jq -e '.markdowns' "$report" > /dev/null 2>&1; then
+            echo "Error: Report missing markdowns field"
+            exit 1
+          fi
+          echo "✓ Report structure is valid"

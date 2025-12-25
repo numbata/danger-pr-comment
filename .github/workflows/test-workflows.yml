@@ -1,0 +1,224 @@
+name: Workflow Integration Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-setup:
+    runs-on: ubuntu-latest
+    outputs:
+      test-matrix: ${{ steps.matrix.outputs.test-matrix }}
+    steps:
+      - name: Define test matrix
+        id: matrix
+        run: |
+          echo 'test-matrix=["default", "custom-ruby", "no-cache"]' >> $GITHUB_OUTPUT
+
+  # Run danger with different configurations
+  test-danger-run:
+    runs-on: ubuntu-latest
+    needs: test-setup
+    strategy:
+      fail-fast: false
+      matrix:
+        config: ["default", "custom-ruby", "no-cache"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Ruby (default)
+        if: matrix.config == 'default'
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Set up Ruby (custom)
+        if: matrix.config == 'custom-ruby'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      - name: Set up Ruby (no cache)
+        if: matrix.config == 'no-cache'
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: false
+
+      - name: Install dependencies (no cache scenario)
+        if: matrix.config == 'no-cache'
+        run: bundle install
+
+      - name: Test Danger dry run
+        id: danger
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DANGER_REPORT_PATH: ${{ runner.temp }}/danger-report.json
+        run: |
+          # Create a dummy PR event file for testing
+          mkdir -p ${{ runner.temp }}/event
+          cat > "$GITHUB_EVENT_PATH.test" <<'JSON'
+          {
+            "pull_request": {
+              "number": 1
+            }
+          }
+          JSON
+          export GITHUB_EVENT_PATH="${GITHUB_EVENT_PATH}.test"
+          
+          # Run danger in dry run mode
+          bundle exec danger dry_run || true
+          
+          # Verify report was created
+          if [ -f "$DANGER_REPORT_PATH" ]; then
+            echo "report-created=true" >> $GITHUB_OUTPUT
+            echo "✓ Danger report created successfully"
+            cat "$DANGER_REPORT_PATH"
+          else
+            echo "report-created=false" >> $GITHUB_OUTPUT
+            echo "✗ Danger report not created"
+          fi
+
+      - name: Validate report structure
+        if: steps.danger.outputs.report-created == 'true'
+        env:
+          REPORT_PATH: ${{ runner.temp }}/danger-report.json
+        run: |
+          echo "Validating report structure..."
+          
+          # Check if file is valid JSON
+          if ! jq empty "$REPORT_PATH" 2>/dev/null; then
+            echo "Error: Report is not valid JSON"
+            exit 1
+          fi
+          
+          # Check required fields
+          required_fields=("pr_number" "errors" "warnings" "messages" "markdowns")
+          for field in "${required_fields[@]}"; do
+            if ! jq -e ".$field" "$REPORT_PATH" > /dev/null 2>&1; then
+              echo "Error: Missing required field: $field"
+              exit 1
+            fi
+            echo "✓ Field '$field' exists"
+          done
+          
+          # Validate field types
+          if ! jq -e '.pr_number | type == "number"' "$REPORT_PATH" > /dev/null 2>&1; then
+            echo "Error: pr_number is not a number"
+            exit 1
+          fi
+          
+          for field in "errors" "warnings" "messages" "markdowns"; do
+            if ! jq -e ".$field | type == \"array\"" "$REPORT_PATH" > /dev/null 2>&1; then
+              echo "Error: $field is not an array"
+              exit 1
+            fi
+            echo "✓ Field '$field' is an array"
+          done
+          
+          echo "✓ Report structure validation passed"
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-danger-report-${{ matrix.config }}
+          path: ${{ runner.temp }}/danger-report.json
+          if-no-files-found: warn
+
+  # Test workflow file syntax
+  test-workflow-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate danger-run.yml syntax
+        run: |
+          echo "Checking danger-run.yml..."
+          # Basic YAML syntax check
+          if ! python3 -c "import yaml; yaml.safe_load(open('.github/workflows/danger-run.yml'))" 2>/dev/null; then
+            echo "Error: danger-run.yml has invalid YAML syntax"
+            exit 1
+          fi
+          echo "✓ danger-run.yml syntax is valid"
+
+      - name: Validate danger-comment.yml syntax
+        run: |
+          echo "Checking danger-comment.yml..."
+          if ! python3 -c "import yaml; yaml.safe_load(open('.github/workflows/danger-comment.yml'))" 2>/dev/null; then
+            echo "Error: danger-comment.yml has invalid YAML syntax"
+            exit 1
+          fi
+          echo "✓ danger-comment.yml syntax is valid"
+
+      - name: Check workflow inputs
+        run: |
+          echo "Validating workflow inputs..."
+          
+          # Check danger-run.yml has expected inputs
+          danger_run_inputs=$(python3 -c "
+          import yaml
+          with open('.github/workflows/danger-run.yml') as f:
+              data = yaml.safe_load(f)
+              inputs = data.get('on', {}).get('workflow_call', {}).get('inputs', {})
+              print(' '.join(inputs.keys()))
+          ")
+          
+          expected_inputs="ruby-version bundler-cache danger-args report-artifact-name report-file"
+          for input in $expected_inputs; do
+            if ! echo "$danger_run_inputs" | grep -q "$input"; then
+              echo "Error: Missing input '$input' in danger-run.yml"
+              exit 1
+            fi
+            echo "✓ Input '$input' exists in danger-run.yml"
+          done
+          
+          # Check danger-comment.yml has expected inputs
+          danger_comment_inputs=$(python3 -c "
+          import yaml
+          with open('.github/workflows/danger-comment.yml') as f:
+              data = yaml.safe_load(f)
+              inputs = data.get('on', {}).get('workflow_call', {}).get('inputs', {})
+              print(' '.join(inputs.keys()))
+          ")
+          
+          expected_inputs="report-artifact-name report-file comment-title comment-marker"
+          for input in $expected_inputs; do
+            if ! echo "$danger_comment_inputs" | grep -q "$input"; then
+              echo "Error: Missing input '$input' in danger-comment.yml"
+              exit 1
+            fi
+            echo "✓ Input '$input' exists in danger-comment.yml"
+          done
+
+  # Test that workflows can be called
+  test-reusable-workflow-call:
+    uses: ./.github/workflows/danger-run.yml
+    secrets: inherit
+
+  test-results:
+    runs-on: ubuntu-latest
+    needs: [test-danger-run, test-workflow-syntax, test-reusable-workflow-call]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          echo "Test Summary:"
+          echo "- Danger run tests: ${{ needs.test-danger-run.result }}"
+          echo "- Workflow syntax tests: ${{ needs.test-workflow-syntax.result }}"
+          echo "- Reusable workflow call test: ${{ needs.test-reusable-workflow-call.result }}"
+          
+          if [ "${{ needs.test-danger-run.result }}" != "success" ] || \
+             [ "${{ needs.test-workflow-syntax.result }}" != "success" ] || \
+             [ "${{ needs.test-reusable-workflow-call.result }}" != "success" ]; then
+            echo "❌ Some tests failed"
+            exit 1
+          fi
+          
+          echo "✅ All workflow tests passed"

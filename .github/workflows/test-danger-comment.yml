@@ -1,0 +1,33 @@
+name: Test Danger Comment Workflow
+
+on:
+  workflow_run:
+    workflows: ["Test Danger Run Workflow"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  # Test with default inputs
+  test-default-comment:
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/danger-comment.yml
+    secrets: inherit
+
+  # Test with custom comment settings
+  test-custom-comment:
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/danger-comment.yml
+    with:
+      comment-title: "Custom Test Report"
+      comment-marker: "<!-- test-marker -->"
+    secrets: inherit
+
+  # Test with custom artifact name (must match test-danger-run.yml)
+  test-custom-artifact-comment:
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/danger-comment.yml
+    with:
+      report-artifact-name: "custom-danger-report"
+      report-file: "custom-report.json"
+      comment-title: "Custom Artifact Report"
+    secrets: inherit
