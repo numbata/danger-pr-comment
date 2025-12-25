@@ -7,20 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-setup:
-    runs-on: ubuntu-latest
-    outputs:
-      test-matrix: ${{ steps.matrix.outputs.test-matrix }}
-    steps:
-      - name: Define test matrix
-        id: matrix
-        run: |
-          echo 'test-matrix=["default", "custom-ruby", "no-cache"]' >> $GITHUB_OUTPUT
-
   # Run danger with different configurations
   test-danger-run:
     runs-on: ubuntu-latest
-    needs: test-setup
     strategy:
       fail-fast: false
       matrix:
@@ -62,11 +51,12 @@ jobs:
           DANGER_REPORT_PATH: ${{ runner.temp }}/danger-report.json
         run: |
           # Create a dummy PR event file for testing
+          # Using PR number 999 as a placeholder test value
           mkdir -p ${{ runner.temp }}/event
           cat > "$GITHUB_EVENT_PATH.test" <<'JSON'
           {
             "pull_request": {
-              "number": 1
+              "number": 999
             }
           }
           JSON

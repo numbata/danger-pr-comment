@@ -74,23 +74,12 @@ jobs:
       - name: Validate report structure
         run: |
           report="./default-report/danger-report.json"
-          if ! jq -e '.pr_number' "$report" > /dev/null 2>&1; then
-            echo "Warning: Report does not contain pr_number (expected for dry_run)"
-          fi
-          if ! jq -e '.errors' "$report" > /dev/null 2>&1; then
-            echo "Error: Report missing errors field"
-            exit 1
-          fi
-          if ! jq -e '.warnings' "$report" > /dev/null 2>&1; then
-            echo "Error: Report missing warnings field"
-            exit 1
-          fi
-          if ! jq -e '.messages' "$report" > /dev/null 2>&1; then
-            echo "Error: Report missing messages field"
-            exit 1
-          fi
-          if ! jq -e '.markdowns' "$report" > /dev/null 2>&1; then
-            echo "Error: Report missing markdowns field"
-            exit 1
-          fi
+          # Note: pr_number may not be present in dry_run mode, so we only validate the field structure
+          required_fields=("errors" "warnings" "messages" "markdowns")
+          for field in "${required_fields[@]}"; do
+            if ! jq -e ".$field" "$report" > /dev/null 2>&1; then
+              echo "Error: Report missing $field field"
+              exit 1
+            fi
+          done
           echo "✓ Report structure is valid"
