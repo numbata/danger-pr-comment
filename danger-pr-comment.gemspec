@@ -16,4 +16,6 @@ Gem::Specification.new do |s|
   s.require_paths = ['lib']
 
   s.add_runtime_dependency 'danger', '~> 9'
+
+  s.add_development_dependency 'rspec', '~> 3.13'
 end
