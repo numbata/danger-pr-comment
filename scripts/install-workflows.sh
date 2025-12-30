@@ -71,6 +71,9 @@ jobs:
   danger:
     uses: numbata/danger-pr-comment/.github/workflows/danger-run.yml@v0.1.0
     secrets: inherit
+    with:
+      ruby-version: '3.4'
+      bundler-cache: true
 EOF
 
 write_file "$workflows_dir/danger-comment.yml" <<'EOF'

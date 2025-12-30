@@ -7,11 +7,17 @@ Reusable GitHub Actions workflows for running Danger and posting a PR comment fr
 ## Table of Contents
 
 - [Usage](#usage)
+  - [Prerequisites](#prerequisites)
   - [Quick Install](#quick-install)
   - [Manual Setup](#manual-setup)
-- [Requirements](#requirements)
-  - [Dangerfile report example](#dangerfile-report-example)
-- [Inputs](#inputs)
+- [Implementation Details](#implementation-details)
+  - [JSON Report Output](#json-report-output)
+    - [Shared Dangerfile](#shared-dangerfile)
+    - [Custom at_exit Hook](#custom-at_exit-hook)
+  - [Permissions](#permissions)
+  - [Inputs](#inputs)
+    - [danger-run.yml](#danger-runyml)
+    - [danger-comment.yml](#danger-commentyml)
 - [License](#license)
 
 ## Usage
@@ -80,6 +86,9 @@ jobs:
   danger:
     uses: numbata/danger-pr-comment/.github/workflows/danger-run.yml@v0.1.0
     secrets: inherit
+    with:
+      ruby-version: '3.4'
+      bundler-cache: true
 ```
 
 Create `.github/workflows/danger-comment.yml` in your repository:
@@ -108,7 +117,18 @@ Using danger-pr-comment solves the problem of needing special permissions to pos
 
 ### JSON Report Output
 
-Your Dangerfile must write a JSON report to `ENV['DANGER_REPORT_PATH']` (for example, via a custom `at_exit` hook or a shared Dangerfile).
+Your Dangerfile must write a JSON report to `ENV['DANGER_REPORT_PATH']`.
+
+#### Shared Dangerfile
+
+```ruby
+# Import danger-pr-comment for automatic danger report export to JSON
+danger.import_dangerfile(gem: 'danger-pr-comment')
+```
+
+See [Dangerfile](Dangerfile) for implementation details.
+
+#### Custom `at_exit` Hook
 
 ```ruby
 # Dangerfile
