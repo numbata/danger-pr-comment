@@ -69,7 +69,7 @@ on:
 
 jobs:
   danger:
-    uses: numbata/danger-pr-comment/.github/workflows/danger-run.yml@main
+    uses: numbata/danger-pr-comment/.github/workflows/danger-run.yml@v0.1.0
     secrets: inherit
 EOF
 
@@ -87,6 +87,6 @@ permissions:
 
 jobs:
   comment:
-    uses: numbata/danger-pr-comment/.github/workflows/danger-comment.yml@main
+    uses: numbata/danger-pr-comment/.github/workflows/danger-comment.yml@v0.1.0
     secrets: inherit
 EOF
