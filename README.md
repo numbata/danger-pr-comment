@@ -24,7 +24,13 @@ From your repository root:
 curl -fsSL https://raw.githubusercontent.com/numbata/danger-pr-comment/main/scripts/install-workflows.sh | bash
 ```
 
-Use `--force` to overwrite existing workflow files. To target a specific directory:
+Use `--force` to overwrite existing workflow files `.github/workflows/danger.yml` and `.github/workflows/danger-comment.yml`: 
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/numbata/danger-pr-comment/main/scripts/install-workflows.sh | bash -s -- --force
+```
+
+To target a specific directory:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/numbata/danger-pr-comment/main/scripts/install-workflows.sh | bash -s -- --root /path/to/repo
