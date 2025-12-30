@@ -16,6 +16,36 @@ Reusable GitHub Actions workflows for running Danger and posting a PR comment fr
 
 ## Usage
 
+### Prerequisites
+
+Setup [Danger](https://github.com/danger/danger) in your repository.
+
+For example, the following `Gemfile` and `Dangerfile` install danger with the [danger-changelog plugin](https://github.com/dblock/danger-changelog).
+
+```ruby
+group :development, :test do
+  gem 'danger'
+  gem 'danger-changelog'
+  gem 'danger-pr-comment', require: false
+end
+```
+
+```
+# frozen_string_literal: true
+
+danger.import_dangerfile(gem: 'danger-pr-comment')
+
+changelog.check!
+```
+
+Run `bundle install` and `bundle exec danger` to make sure it works.
+
+```bash
+bundle exec danger
+
+Could not find the type of CI for Danger to run on.
+```
+
 ### Quick Install
 
 From your repository root:
@@ -72,28 +102,13 @@ jobs:
     secrets: inherit
 ```
 
-## Requirements
+## Implementation Details
 
-- Your repository must run `bundle exec danger` successfully.
-- Your Dangerfile must write a JSON report to `ENV['DANGER_REPORT_PATH']` (for example, via a custom `at_exit` hook or a shared Dangerfile).
-- The `Danger Comment` workflow requires explicit permissions. Reusable workflows cannot grant permissions to their callers. Required: `actions: read` (download artifacts from the Danger run), `issues: write` and `pull-requests: write` (create/update PR comments).
+Using danger-pr-comment solves the problem of needing special permissions to post a PR comment from contributions from forks. This is implemented by producing a JSON report during the PR, and reading the report in a separate workflow.
 
-### Dangerfile report example
+### JSON Report Output
 
-If you want a shared Dangerfile, add the gem and import it:
-
-```ruby
-# Gemfile
-gem 'danger-pr-comment', require: false
-```
-
-```ruby
-# Dangerfile
-# Import danger-pr-comment for automatic danger report export
-danger.import_dangerfile(gem: 'danger-pr-comment')
-```
-
-Or add this to your project's `Dangerfile` (or a shared Dangerfile) to emit the JSON report yourself:
+Your Dangerfile must write a JSON report to `ENV['DANGER_REPORT_PATH']` (for example, via a custom `at_exit` hook or a shared Dangerfile).
 
 ```ruby
 # Dangerfile
@@ -129,9 +144,13 @@ at_exit do
 end
 ```
 
-## Inputs
+### Permissions
 
-`danger-run.yml` inputs:
+The `Danger Comment` workflow requires explicit permissions. Reusable workflows cannot grant permissions to their callers. Required: `actions: read` (download artifacts from the Danger run), `issues: write` and `pull-requests: write` (create/update PR comments).
+
+### Inputs
+
+#### `danger-run.yml`
 
 - `ruby-version`: Ruby version for `ruby/setup-ruby`. Leave empty to use `.ruby-version`/`.tool-versions`.
 - `bundler-cache`: Enable Bundler caching (default `true`).
@@ -139,7 +158,7 @@ end
 - `report-artifact-name`: Artifact name for the report (default `danger-report`).
 - `report-file`: Report filename (default `danger-report.json`).
 
-`danger-comment.yml` inputs:
+#### `danger-comment.yml`
 
 - `report-artifact-name`: Artifact name to download (default `danger-report`).
 - `report-file`: Report filename inside the artifact (default `danger-report.json`).
