@@ -55,6 +55,11 @@ on:
     workflows: [Danger]
     types: [completed]
 
+permissions:
+  actions: read        # download artifacts
+  issues: write        # list + create/update comments
+  pull-requests: write # PR comment access
+
 jobs:
   comment:
     uses: numbata/danger-pr-comment/.github/workflows/danger-comment.yml@main
@@ -65,7 +70,7 @@ jobs:
 
 - Your repository must run `bundle exec danger` successfully.
 - Your Dangerfile must write a JSON report to `ENV['DANGER_REPORT_PATH']` (for example, via a custom `at_exit` hook or a shared Dangerfile).
-- The `Danger Comment` workflow needs `actions: read` and `issues: write` permissions to download artifacts and post comments.
+- The `Danger Comment` workflow requires explicit permissions. Reusable workflows cannot grant permissions to their callers. Required: `actions: read` (download artifacts from the Danger run), `issues: write` and `pull-requests: write` (create/update PR comments).
 
 ### Dangerfile report example
 

@@ -6,8 +6,9 @@ on:
     types: [completed]
 
 permissions:
-  actions: read
-  issues: write
+  actions: read        # download artifacts
+  issues: write        # list + create/update comments
+  pull-requests: write # PR comment access
 
 jobs:
   comment:

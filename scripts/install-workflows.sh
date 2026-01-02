@@ -80,6 +80,11 @@ on:
     workflows: [Danger]
     types: [completed]
 
+permissions:
+  actions: read        # download artifacts
+  issues: write        # list + create/update comments
+  pull-requests: write # PR comment access
+
 jobs:
   comment:
     uses: numbata/danger-pr-comment/.github/workflows/danger-comment.yml@main
