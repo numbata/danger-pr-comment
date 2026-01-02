@@ -1,0 +1,18 @@
+name: CI Comment
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  actions: read
+  issues: write
+
+jobs:
+  comment:
+    uses: ./.github/workflows/danger-comment.yml
+    with:
+      report-artifact-name: ci-danger-report
+      comment-marker: "<!-- ci-danger-report -->"
+    secrets: inherit

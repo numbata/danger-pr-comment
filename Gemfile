@@ -14,5 +14,7 @@ group :development do
 end
 
 group :test do
+  gem 'danger-changelog', '~> 0.8', require: false
+  gem 'danger-toc', '~> 0.2', require: false
   gem 'rspec'
 end
