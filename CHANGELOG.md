@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#6](https://github.com/numbata/danger-pr-comment/pull/6): Setup danger workflows as an example - [@numbata](https://github.com/numbata).
 - [#1](https://github.com/numbata/danger-pr-comment/pull/1): Add comprehensive test suite with RSpec, Rubocop, and CI - [@dblock](https://github.com/dblock).
 
+### Fixed
+
+- Your contribution here.
+
 ## [0.1.0] - 2024-01-01
 
 ### Added

@@ -101,6 +101,14 @@ RSpec.describe 'Workflow installation script', type: :integration do
       content = File.read(danger_comment_yml_path)
       expect(content).to include('secrets: inherit')
     end
+
+    it 'includes required permissions' do
+      content = File.read(danger_comment_yml_path)
+      expect(content).to include('permissions:')
+      expect(content).to include('actions: read')
+      expect(content).to include('issues: write')
+      expect(content).to include('pull-requests: write')
+    end
   end
 
   describe '--force option' do

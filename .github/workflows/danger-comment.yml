@@ -25,10 +25,9 @@ on:
         default: "<!-- danger-report -->"
 
 permissions:
-  contents: read
-  actions: read
-  issues: write
-  pull-requests: write
+  actions: read        # download artifacts
+  issues: write        # list + create/update comments
+  pull-requests: write # PR comment access
 
 jobs:
   comment:
