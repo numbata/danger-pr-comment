@@ -1,5 +1,7 @@
 # Danger PR Comment
 
+[![Test](https://github.com/numbata/danger-pr-comment/actions/workflows/test.yml/badge.svg)](https://github.com/numbata/danger-pr-comment/actions/workflows/test.yml)
+
 Reusable GitHub Actions workflows for running Danger and posting a PR comment from a JSON report.
 
 ## Usage

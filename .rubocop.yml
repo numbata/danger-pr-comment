@@ -1,0 +1,38 @@
+AllCops:
+  TargetRubyVersion: 3.1
+  NewCops: enable
+  Exclude:
+    - 'vendor/**/*'
+    - 'bin/**/*'
+
+plugins:
+  - rubocop-rake
+  - rubocop-rspec
+
+Style/Documentation:
+  Enabled: false
+
+Layout/LineLength:
+  Enabled: false
+
+Naming/FileName:
+  Enabled: false
+
+Metrics/BlockLength:
+  Enabled: false
+
+Gemspec/RequiredRubyVersion:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Enabled: false
+
+RSpec/ExampleLength:
+  Enabled: false
+
+RSpec/SpecFilePathFormat:
+  Enabled: false
+
+RSpec/DescribeClass:
+  Exclude:
+    - 'spec/scripts/**/*_spec.rb'
