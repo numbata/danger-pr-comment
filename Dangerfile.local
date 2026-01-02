@@ -1,0 +1,18 @@
+# frozen_string_literal: true
+
+# Project-specific Dangerfile for danger-pr-comment CI
+# This is NOT the shared Dangerfile - see ./Dangerfile for the importable one
+
+# Import the shared Dangerfile for JSON report export
+danger.import_dangerfile(path: 'Dangerfile')
+
+# --------------------------------------------------------------------------------------------------------------------
+# Have you updated CHANGELOG.md?
+# --------------------------------------------------------------------------------------------------------------------
+changelog.format = :keep_a_changelog
+changelog.check!
+
+# --------------------------------------------------------------------------------------------------------------------
+# Do you have a TOC?
+# --------------------------------------------------------------------------------------------------------------------
+toc.check!

@@ -4,6 +4,16 @@
 
 Reusable GitHub Actions workflows for running Danger and posting a PR comment from a JSON report.
 
+## Table of Contents
+
+- [Usage](#usage)
+  - [Quick Install](#quick-install)
+  - [Manual Setup](#manual-setup)
+- [Requirements](#requirements)
+  - [Dangerfile report example](#dangerfile-report-example)
+- [Inputs](#inputs)
+- [License](#license)
+
 ## Usage
 
 ### Quick Install
