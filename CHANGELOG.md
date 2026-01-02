@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Your contribution here.
+- [#7](https://github.com/numbata/danger-pr-comment/pull/7): Add required permissions to workflow examples and templates - [@numbata](https://github.com/numbata).
 
 ## [0.1.0] - 2024-01-01
 
