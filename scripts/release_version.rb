@@ -11,6 +11,8 @@ def prepare_changelog(content, version)
 
     return content
   end
+  abort 'No unreleased changes to release' if content[/^## \[Unreleased\]\n(.*?)(?=^## \[|\z)/m, 1].strip.empty?
+
   content.sub(/^## \[Unreleased\]$/, "## [Unreleased]\n\n## [#{version}] - #{Time.now.utc.to_date.iso8601}")
 end
 
