@@ -16,7 +16,9 @@ After verifying trusted publishing works, remove any obsolete `RUBYGEMS_API_KEY`
 
 Start from current `main`, review changes since the last release, and maintain the release notes under `## [Unreleased]` in `CHANGELOG.md`. The previous release has already incremented `lib/danger-pr-comment/version.rb` to the next patch version, so a normal patch release needs no manual version change.
 
-For a minor or major release, change `lib/danger-pr-comment/version.rb` to the intended MAJOR.MINOR.PATCH version, commit, and push before dispatching the workflow.
+For a minor or major release, pass the intended MAJOR.MINOR.PATCH version as the workflow's `version` input. The workflow writes it to `lib/danger-pr-comment/version.rb` and includes that change in the release preparation commit. No manual version commit is needed.
+
+The version must not already exist as a git tag, GitHub release, or RubyGems version, and must be greater than the latest release tag. The workflow checks all of this before changing any file, and the error names where the version was found so you can pick the matching recovery step below.
 
 Do not manually date the changelog or update workflow tag references. The release workflow runs `ruby scripts/release_version.rb prepare`, which dates the current version's changelog section using the UTC date, adds a fresh empty `[Unreleased]` section, and updates the README, installer, and matching installer specs to `@vVERSION`. It rejects empty release notes and validates all these files before writing them. It can be rerun for an already prepared release without changing its date or duplicating its heading.
 
@@ -25,8 +27,11 @@ Do not manually date the changelog or update workflow tag references. The releas
 Run the [Release workflow](https://github.com/numbata/danger-pr-comment/actions/workflows/release.yml) on `main`, or use:
 
 ```sh
-gh workflow run release.yml --ref main
+gh workflow run release.yml --ref main                  # release the version in version.rb
+gh workflow run release.yml --ref main -f version=0.2.0 # release an explicit version
 ```
+
+Only repository admins can run it: the first step fails for anyone else, even with write access. Together with the `release` environment's required reviewers, this keeps releases with the maintainers.
 
 Approve the `release` environment deployment if required. The workflow rejects stale dispatches and existing tags, validates the version, prepares the release files, and runs the full specs and RuboCop against those prepared files. It commits preparation locally, then builds and tags that exact commit. Before publication, it uploads the built gem and a Git bundle containing the prepared commit and tag as a `release-vVERSION` recovery artifact.
 
