@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - [#10](https://github.com/numbata/danger-pr-comment/pull/10): Automate release changelog preparation and update workflow tag references in the README, installer, and installer specs - [@dblock](https://github.com/dblock).
+- [#12](https://github.com/numbata/danger-pr-comment/pull/12): Add a version input and admin-only access to the release workflow, and reject versions that already exist - [@numbata](https://github.com/numbata).
 
 ## [0.1.1] - 2026-10-21
 
