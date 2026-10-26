@@ -67,9 +67,15 @@ jobs:
       env:
         VERSION: ${{ steps.get_version.outputs.version }}
       run: |
-        git add -u
+        # Keep in sync with the files written by `scripts/release_version.rb prepare`.
+        git add CHANGELOG.md README.md scripts/install-workflows.sh spec/scripts/install_workflows_spec.rb
         if ! git diff --cached --quiet; then
           git commit -m "Prepare release $VERSION"
+        fi
+        if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+          echo "::error::Unexpected changes outside the release preparation:"
+          git status --porcelain --untracked-files=no
+          exit 1
         fi
 
     - name: Create git tag
