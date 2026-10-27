@@ -18,7 +18,7 @@ Start from current `main`, review changes since the last release, and maintain t
 
 For a minor or major release, pass the intended MAJOR.MINOR.PATCH version as the workflow's `version` input. The workflow writes it to `lib/danger-pr-comment/version.rb` and includes that change in the release preparation commit. No manual version commit is needed.
 
-The version must not already exist as a git tag, GitHub release, or RubyGems version, and must be greater than the latest release tag. The workflow checks all of this before changing any file, and the error names where the version was found so you can pick the matching recovery step below.
+The version must not already exist as a git tag (every GitHub release has one) or a RubyGems version, and must be greater than the latest release tag. The workflow checks all of this before changing any file, and the error names where the version was found so you can pick the matching recovery step below.
 
 Do not manually date the changelog or update workflow tag references. The release workflow runs `ruby scripts/release_version.rb prepare`, which dates the current version's changelog section using the UTC date, adds a fresh empty `[Unreleased]` section, and updates the README, installer, and matching installer specs to `@vVERSION`. It rejects empty release notes and validates all these files before writing them. It can be rerun for an already prepared release without changing its date or duplicating its heading.
 

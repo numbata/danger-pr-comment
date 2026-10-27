@@ -71,7 +71,6 @@ jobs:
 
     - name: Reject a version that already exists
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         VERSION: ${{ steps.get_version.outputs.version }}
       run: |
         TAG="v$VERSION"
@@ -79,11 +78,7 @@ jobs:
           echo "::error::Tag $TAG already exists. See RELEASING.md to recover a partial release."
           exit 1
         fi
-        if gh release view "$TAG" > /dev/null 2>&1; then
-          echo "::error::GitHub release $TAG already exists. See RELEASING.md to recover a partial release."
-          exit 1
-        fi
-        CODE=$(curl -s -o /dev/null -w '%{http_code}' "https://rubygems.org/api/v2/rubygems/danger-pr-comment/versions/$VERSION.json")
+        CODE=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "https://rubygems.org/api/v2/rubygems/danger-pr-comment/versions/$VERSION.json")
         if [ "$CODE" = 200 ]; then
           echo "::error::Version $VERSION is already published on RubyGems. See RELEASING.md to recover a partial release."
           exit 1
