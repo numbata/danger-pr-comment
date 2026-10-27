@@ -63,15 +63,20 @@ jobs:
     - name: Run specs and lint against prepared release
       run: bundle exec rake
 
-    - name: Commit and push release preparation
+    - name: Commit release preparation
       env:
         VERSION: ${{ steps.get_version.outputs.version }}
       run: |
+        # Keep in sync with the files written by `scripts/release_version.rb prepare`.
         git add CHANGELOG.md README.md scripts/install-workflows.sh spec/scripts/install_workflows_spec.rb
         if ! git diff --cached --quiet; then
           git commit -m "Prepare release $VERSION"
         fi
-        git push origin HEAD:main
+        if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+          echo "::error::Unexpected changes outside the release preparation:"
+          git status --porcelain --untracked-files=no
+          exit 1
+        fi
 
     - name: Create git tag
       run: git tag "v${{ steps.get_version.outputs.version }}"
@@ -95,8 +100,8 @@ jobs:
           exit 1
         fi
 
-    - name: Push tag
-      run: git push origin "v${{ steps.get_version.outputs.version }}"
+    - name: Push release preparation and tag
+      run: git push --atomic origin HEAD:main "v${{ steps.get_version.outputs.version }}"
 
     - name: Create GitHub Release
       env:

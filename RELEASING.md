@@ -28,11 +28,11 @@ Run the [Release workflow](https://github.com/numbata/danger-pr-comment/actions/
 gh workflow run release.yml --ref main
 ```
 
-Approve the `release` environment deployment if required. The workflow rejects stale dispatches and existing tags, validates the version, prepares the release files, and runs the full specs and RuboCop against those prepared files. It commits and pushes preparation to `main` before building and tagging that exact commit. A concurrent push to `main` stops the release rather than overwriting it.
+Approve the `release` environment deployment if required. The workflow rejects stale dispatches and existing tags, validates the version, prepares the release files, and runs the full specs and RuboCop against those prepared files. It refuses to prepare a release with an empty `[Unreleased]` section. It commits the preparation locally and tags that exact commit.
 
-It then builds the gem, authenticates through OIDC, publishes the gem, pushes the release tag, and creates a GitHub release with the gem attached. Finally, it increments only the gem's patch version and pushes that change to `main`; the README and installer continue referencing the published release. Release runs are serialized; failures stop subsequent steps.
+It then builds the gem, authenticates through OIDC, publishes the gem, pushes the preparation commit and the release tag to `main` in one atomic push, and creates a GitHub release with the gem attached. A concurrent push to `main` makes that push fail rather than overwrite it. Finally, it increments only the gem's patch version and pushes that change to `main`; the README and installer continue referencing the published release. Release runs are serialized; failures stop subsequent steps.
 
-The installer is downloaded from `main`, so there is a short window between pushing preparation and pushing the release tag when its new workflow references do not resolve. If publication fails, resolve the failure promptly using the recovery steps below.
+The installer is downloaded from `main`, so preparation is pushed only together with the release tag, after the gem is published. Its new workflow references never point at a tag that does not exist.
 
 The automatic `GITHUB_TOKEN` is sufficient for GitHub operations, but its pushes do not trigger other push-based workflows. Run required checks explicitly rather than relying on tag or version-bump pushes to trigger CI.
 
@@ -54,8 +54,8 @@ Check which steps succeeded before retrying. RubyGems versions cannot be overwri
 
 If OIDC authentication fails, check that the configured publisher's owner, repository, workflow filename, and environment match the workflow exactly, and that `id-token: write` is enabled. Do not add a long-lived API key as a workaround.
 
-* Before publication: fix the failure and dispatch a new run. Preparation may already be committed to `main`; the helper preserves that release section and date on retry. If new unreleased changes were added after preparation, reconcile those notes with the prepared release section before retrying. If an upload failed or timed out, check RubyGems first; the server may have accepted it.
-* Gem published, tag missing: recover the original run's commit, create `vVERSION` at that exact commit, and push it. Do not tag the latest `main` unless it is that commit.
+* Before publication: fix the failure and dispatch a new run. Nothing has been pushed, so the new run starts clean. If an upload failed or timed out, check RubyGems first; the server may have accepted it.
+* Gem published, tag and preparation not pushed (for example the atomic push was rejected because `main` advanced): recover the original run's preparation commit and create `vVERSION` at that exact commit. Rebase that commit onto current `main` if needed, then push the branch and tag together. Do not tag the latest `main` unless it is that commit.
 * Tag pushed, GitHub release missing: create the release from the existing tag using `gh release create vVERSION --verify-tag --generate-notes`, attaching the original built gem if available.
 * Release complete, version bump failed: pull current `main`, resolve the branch permission or concurrent-push problem, and update the version only if it still equals the released version. Run `ruby scripts/release_version.rb bump`, review the diff, commit, and push.
 
@@ -70,11 +70,10 @@ ruby scripts/release_version.rb prepare
 bundle exec rake
 git add CHANGELOG.md README.md scripts/install-workflows.sh spec/scripts/install_workflows_spec.rb
 git diff --cached --quiet || git commit -m "Prepare release 0.2.0"
-git push origin main
 gem build danger-pr-comment.gemspec
 gem push danger-pr-comment-0.2.0.gem
 git tag v0.2.0
-git push origin v0.2.0
+git push --atomic origin main v0.2.0
 gh release create v0.2.0 --verify-tag --generate-notes danger-pr-comment-0.2.0.gem
 ruby scripts/release_version.rb bump
 git add lib/danger-pr-comment/version.rb

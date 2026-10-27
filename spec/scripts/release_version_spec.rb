@@ -41,7 +41,7 @@ RSpec.describe 'Release version script' do
       expect(status.success?).to be(true), error
       expect(output).to eq("1.2.3\n")
       expect(File.read(path)).to eq(original_version)
-      expect(File.read("#{directory}/CHANGELOG.md")).to include("## [Unreleased]\n\n## [1.2.3] - #{Time.now.utc.to_date.iso8601}\n\n### Fixed\n\n- A fix.\n\n## [0.1.0] - 2024-01-01\n")
+      expect(File.read("#{directory}/CHANGELOG.md")).to match(/## \[Unreleased\]\n\n## \[1\.2\.3\] - \d{4}-\d{2}-\d{2}\n\n### Fixed\n\n- A fix\.\n\n## \[0\.1\.0\] - 2024-01-01\n/)
       %w[README.md scripts/install-workflows.sh spec/scripts/install_workflows_spec.rb].each do |file|
         content = File.read("#{directory}/#{file}")
         %w[run comment].each do |workflow|
@@ -89,13 +89,14 @@ RSpec.describe 'Release version script' do
       [
         "# Changelog\n",
         "## [Unreleased]\n\n## [Unreleased]\n",
-        "## [Unreleased]\n\n- New change.\n\n## [1.2.3] - 2025-01-01\n"
+        "## [Unreleased]\n\n- New change.\n\n## [1.2.3] - 2025-01-01\n",
+        "## [Unreleased]\n\n## [0.1.0] - 2024-01-01\n"
       ].each do |invalid|
         File.write("#{directory}/CHANGELOG.md", invalid)
         original = release_files(directory)
         _output, error, status = Open3.capture3(RbConfig.ruby, script, 'prepare', chdir: directory)
         expect(status.success?).to be(false)
-        expect(error).to match(/Unreleased changelog heading|unprepared changes/)
+        expect(error).to match(/Unreleased changelog heading|unprepared changes|No unreleased changes/)
         expect(release_files(directory)).to eq(original)
       end
     end
