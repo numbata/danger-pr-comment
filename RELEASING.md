@@ -7,6 +7,7 @@ Publishing uses [RubyGems Trusted Publishing](https://guides.rubygems.org/truste
 1. In the GitHub repository settings, create an environment named `release`. Restrict deployments to `main` and configure required reviewers where available.
 2. As a gem owner, open the gem's **Trusted publishers** page on RubyGems.org and add a GitHub Actions publisher with repository owner `numbata`, repository name `danger-pr-comment`, workflow filename `release.yml`, and environment `release`. Use the actual owner and repository if publishing from another repository; forks are not automatically trusted.
 3. Ensure branch rules allow the Actions bot to push release preparation and the next development version directly to `main`.
+4. Create a repository variable named `RELEASERS` (Settings, Secrets and variables, Actions, Variables) listing the GitHub usernames allowed to run the release workflow, separated by spaces, for example `gh variable set RELEASERS --body "numbata dblock"`. A missing or empty variable blocks every release.
 
 The job grants `id-token: write` and uses the pinned official `rubygems/configure-rubygems-credentials` action to exchange GitHub's identity for short-lived publishing credentials. It then uploads the already-built gem with `gem push`. Keeping authentication separate from `rubygems/release-gem` preserves this workflow's publish-before-tag order.
 
@@ -31,7 +32,7 @@ gh workflow run release.yml --ref main                  # release the version in
 gh workflow run release.yml --ref main -f version=0.2.0 # release an explicit version
 ```
 
-Only repository admins can run it: the first step fails for anyone else, even with write access. Together with the `release` environment's required reviewers, this keeps releases with the maintainers.
+Only the users listed in the `RELEASERS` repository variable can run it: the first step fails for anyone else, even with write access. Together with the `release` environment's required reviewers, this keeps releases with the maintainers.
 
 Approve the `release` environment deployment if required. The workflow rejects stale dispatches and existing tags, validates the version, prepares the release files, and runs the full specs and RuboCop against those prepared files. It commits preparation locally, then builds and tags that exact commit. Before publication, it uploads the built gem and a Git bundle containing the prepared commit and tag as a `release-vVERSION` recovery artifact.
 

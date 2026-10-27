@@ -24,14 +24,14 @@ jobs:
     steps:
     - name: Verify the actor may release
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASERS: ${{ vars.RELEASERS }}
         ACTOR: ${{ github.triggering_actor }}
       run: |
-        ROLE=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$ACTOR/permission" --jq .role_name)
-        if [ "$ROLE" != "admin" ]; then
-          echo "::error::$ACTOR has role '$ROLE'; only repository admins can release."
-          exit 1
-        fi
+        for user in $RELEASERS; do
+          if [ "${user,,}" = "${ACTOR,,}" ]; then exit 0; fi
+        done
+        echo "::error::$ACTOR is not listed in the RELEASERS repository variable."
+        exit 1
 
     - uses: actions/checkout@v4
       with:
