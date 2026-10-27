@@ -4,7 +4,7 @@
 
 Publishing uses [RubyGems Trusted Publishing](https://guides.rubygems.org/trusted-publishing/) through GitHub Actions OIDC. No stored RubyGems API key or manual OTP is required.
 
-1. In the GitHub repository settings, create an environment named `release`. Restrict deployments to `main` and configure required reviewers where available.
+1. In the GitHub repository settings, create an environment named `release`. Restrict deployments to `main`. Required reviewers are optional: anyone listed in `RELEASERS` can release without a second approval unless you add some.
 2. As a gem owner, open the gem's **Trusted publishers** page on RubyGems.org and add a GitHub Actions publisher with repository owner `numbata`, repository name `danger-pr-comment`, workflow filename `release.yml`, and environment `release`. Use the actual owner and repository if publishing from another repository; forks are not automatically trusted.
 3. Ensure branch rules allow the Actions bot to push release preparation and the next development version directly to `main`.
 4. Create a repository variable named `RELEASERS` (Settings, Secrets and variables, Actions, Variables) listing the GitHub usernames allowed to run the release workflow, separated by spaces, for example `gh variable set RELEASERS --body "numbata dblock"`. A missing or empty variable blocks every release.
@@ -32,9 +32,9 @@ gh workflow run release.yml --ref main                  # release the version in
 gh workflow run release.yml --ref main -f version=0.2.0 # release an explicit version
 ```
 
-Only the users listed in the `RELEASERS` repository variable can run it: the first step fails for anyone else, even with write access. Together with the `release` environment's required reviewers, this keeps releases with the maintainers.
+Only the users listed in the `RELEASERS` repository variable can run it: the first step fails for anyone else, even with write access. Anyone listed can release on their own; no other approval is needed unless the `release` environment has required reviewers.
 
-Approve the `release` environment deployment if required. The workflow rejects stale dispatches and existing tags, validates the version, prepares the release files, and runs the full specs and RuboCop against those prepared files. It commits preparation locally, then builds and tags that exact commit. Before publication, it uploads the built gem and a Git bundle containing the prepared commit and tag as a `release-vVERSION` recovery artifact.
+If the `release` environment has required reviewers, approve the deployment. The workflow rejects stale dispatches and existing tags, validates the version, prepares the release files, and runs the full specs and RuboCop against those prepared files. It commits preparation locally, then builds and tags that exact commit. Before publication, it uploads the built gem and a Git bundle containing the prepared commit and tag as a `release-vVERSION` recovery artifact.
 
 It authenticates through OIDC, publishes the gem, and atomically pushes the prepared commit to `main` together with the release tag using `git push --atomic origin HEAD:main "v$VERSION"`. A concurrent push to `main` rejects both ref updates rather than overwriting it. It then creates a GitHub release with the gem attached. Finally, it increments only the gem's patch version and pushes that change to `main`; the README and installer continue referencing the published release. Release runs are serialized; failures stop subsequent steps.
 
