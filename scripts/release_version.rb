@@ -30,8 +30,11 @@ def prepare_workflow_references(content, version, path)
   end
 end
 
+SEMVER = /\A(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\z/
+
 command = ARGV.first
-abort 'Usage: ruby scripts/release_version.rb read|prepare|bump' unless ARGV.length == 1 && %w[read prepare bump].include?(command)
+usage = 'Usage: ruby scripts/release_version.rb read|prepare|bump|set VERSION'
+abort usage unless (ARGV.length == 1 && %w[read prepare bump].include?(command)) || (ARGV.length == 2 && command == 'set')
 
 path = 'lib/danger-pr-comment/version.rb'
 content = File.read(path)
@@ -40,7 +43,7 @@ matches = content.scan(pattern)
 abort 'Expected exactly one VERSION assignment in version.rb' unless matches.length == 1
 
 version = matches.first[1]
-abort "Expected MAJOR.MINOR.PATCH, got #{version.inspect}" unless version.match?(/\A(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\z/)
+abort "Expected MAJOR.MINOR.PATCH, got #{version.inspect}" unless version.match?(SEMVER)
 
 case command
 when 'read'
@@ -58,4 +61,10 @@ when 'bump'
   next_version = parts.join('.')
   File.write(path, content.sub(pattern) { "#{Regexp.last_match(1)}#{next_version}#{Regexp.last_match(3)}" })
   puts next_version
+when 'set'
+  new_version = ARGV[1]
+  abort "Expected MAJOR.MINOR.PATCH, got #{new_version.inspect}" unless new_version.match?(SEMVER)
+
+  File.write(path, content.sub(pattern) { "#{Regexp.last_match(1)}#{new_version}#{Regexp.last_match(3)}" })
+  puts new_version
 end

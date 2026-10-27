@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (MAJOR.MINOR.PATCH). Leave blank to release the version in version.rb.'
+        required: false
+        type: string
 
 concurrency:
   group: release
@@ -17,6 +22,17 @@ jobs:
       id-token: write
 
     steps:
+    - name: Verify the actor may release
+      env:
+        RELEASERS: ${{ vars.RELEASERS }}
+        ACTOR: ${{ github.triggering_actor }}
+      run: |
+        for user in $RELEASERS; do
+          if [ "${user,,}" = "${ACTOR,,}" ]; then exit 0; fi
+        done
+        echo "::error::$ACTOR is not listed in the RELEASERS repository variable."
+        exit 1
+
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -35,6 +51,12 @@ jobs:
         ruby-version: '3.3'
         bundler-cache: true
 
+    - name: Set requested version
+      if: inputs.version != ''
+      env:
+        REQUESTED_VERSION: ${{ inputs.version }}
+      run: ruby scripts/release_version.rb set "$REQUESTED_VERSION"
+
     - name: Get version from version.rb
       id: get_version
       run: |
@@ -47,13 +69,26 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Reject existing release tag
+    - name: Reject a version that already exists
       env:
         VERSION: ${{ steps.get_version.outputs.version }}
       run: |
         TAG="v$VERSION"
-        if git show-ref --verify --quiet "refs/tags/$TAG"; then
-          echo "::error::Tag $TAG already exists. Aborting release."
+        if git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null; then
+          echo "::error::Tag $TAG already exists. See RELEASING.md to recover a partial release."
+          exit 1
+        fi
+        CODE=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "https://rubygems.org/api/v2/rubygems/danger-pr-comment/versions/$VERSION.json")
+        if [ "$CODE" = 200 ]; then
+          echo "::error::Version $VERSION is already published on RubyGems. See RELEASING.md to recover a partial release."
+          exit 1
+        elif [ "$CODE" != 404 ]; then
+          echo "::error::Could not check RubyGems for $VERSION (HTTP $CODE). Retry the run."
+          exit 1
+        fi
+        LATEST=$(git tag --list 'v[0-9]*' | sed 's/^v//' | sort -V | tail -1)
+        if [ -n "$LATEST" ] && [ "$(printf '%s\n%s\n' "$LATEST" "$VERSION" | sort -V | tail -1)" != "$VERSION" ]; then
+          echo "::error::Version $VERSION is not greater than the latest release $LATEST."
           exit 1
         fi
 

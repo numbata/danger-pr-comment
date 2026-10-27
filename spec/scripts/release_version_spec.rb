@@ -131,6 +131,22 @@ RSpec.describe 'Release version script' do
     end
   end
 
+  it 'sets only the assignment to a valid version and rejects anything else' do
+    content = "# VERSION = '9.9.9'\nmodule DangerPrComment\n  VERSION = '0.1.9'\nend\n"
+    with_version(content) do |directory, path|
+      %w[0.2 1.2.3.4 v1.2.3 1.2.beta 01.2.3].each do |invalid|
+        _output, error, status = Open3.capture3(RbConfig.ruby, script, 'set', invalid, chdir: directory)
+        expect(status.success?).to be(false)
+        expect(error).to include('Expected MAJOR.MINOR.PATCH')
+        expect(File.read(path)).to eq(content)
+      end
+      output, error, status = Open3.capture3(RbConfig.ruby, script, 'set', '0.2.0', chdir: directory)
+      expect(status.success?).to be(true), error
+      expect(output).to eq("0.2.0\n")
+      expect(File.read(path)).to eq(content.sub("  VERSION = '0.1.9'", "  VERSION = '0.2.0'"))
+    end
+  end
+
   it 'rejects invalid versions without modifying the file' do
     %w[0.1 0.1.0.1 0.1.beta 0.1.0.pre 01.2.3].each do |version|
       content = "  VERSION = '#{version}'\n"
@@ -156,7 +172,7 @@ RSpec.describe 'Release version script' do
 
   it 'rejects invalid commands without modifying the file' do
     with_version("VERSION = '0.1.0'\n") do |directory, path|
-      [[], ['unknown'], %w[bump extra]].each do |arguments|
+      [[], ['unknown'], %w[bump extra], ['set'], %w[set 1.2.3 extra]].each do |arguments|
         _output, error, status = Open3.capture3(RbConfig.ruby, script, *arguments, chdir: directory)
         expect(status.success?).to be(false)
         expect(error).to include('Usage:')
