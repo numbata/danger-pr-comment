@@ -1,5 +1,7 @@
 # Danger PR Comment
 
+> **This repository has moved.** Danger PR Comment now lives at [danger/danger-pr-comment](https://github.com/danger/danger-pr-comment). This copy is frozen and archived so existing workflows that reference `numbata/danger-pr-comment` at tags `v0.1.0`, `v0.1.1`, and `v0.2.0` keep working. Use the `danger` repository for new work and updates.
+
 [![Test](https://github.com/danger/danger-pr-comment/actions/workflows/test.yml/badge.svg)](https://github.com/danger/danger-pr-comment/actions/workflows/test.yml)
 [![Coverage Status](https://coveralls.io/repos/github/danger/danger-pr-comment/badge.svg?branch=main)](https://coveralls.io/github/danger/danger-pr-comment?branch=main)
 
